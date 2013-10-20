@@ -1,0 +1,457 @@
+\documentclass{article}
+\usepackage{url}
+\usepackage{mathtools}
+\begin{document}
+\title{A survey of digital asset representation systems}
+\author{Peter Todd}
+\date{FIXME}
+\maketitle
+
+\section{Attributions}
+
+The reader is cautioned that unfortunately this paper currently lacks proper
+citations and attributions due to lack of time, the complexity of determining
+the originator for many of these concepts, and because the popular
+bitcointalk.org forum where many of these ideas have been discussed was down
+due to a hacking incident when much of this paper was written. Pull-requests to
+fix this deficiency are welcome.
+
+
+\section{Introduction}
+
+\section{Design considerations}
+
+\subsection{Issued assets vs. consensus assets}
+
+A distinction must be made between assets issued by a trusted party and assets
+whose existance and value is a matter of consensus. The most obvious example of
+the former category is directly issued stocks: a company issues the stock and
+without that company the asset is meaningless. Assets derived from physical
+commodities, such as gold ETFs, are another example: a trusted party must act
+as a issuer and guarantor of the asset to provide the mechanism linking the
+representation to the underlying asset.  Again, without the trusted third party
+the asset is meaningless.
+
+Consensus assets on the other hand exist by virtue of consensus among some
+community. Bitcoin itself is an example, as are the domain names registered
+with the Namecoin blockchain. A more unusual example is the proposed fidelity
+bond mechanism, creating an asset from the act of sacrificing Bitcoins, in
+conjuction with the ability to compactly and in a machine-readable way prove
+fraud by the owner of the bond. In all these cases the asset only exists in the
+minds' of a community who come to consensus that the asset exists and who owns
+it through some shared set of mathematical rules.
+
+The options available for representing the asset are more broad when a trusted
+issuer is already required: the third-party themselves can maintain and
+guarantee the records of who owns what unit of the asset. This is not true with
+consensus assets, for which the only known way to record the ledger of assets
+in a decentralized fashion is to use a Satoshi-style block chain.
+
+
+\subsection{Atomic zero-trust transferability}
+
+It should be possible to transfer an asset between owners atomically, without
+trusting the other party to fully complete the transfer. However, for
+third-party guaranteed systems, it is acceptable to trust them to record the
+transfer accurately so long as fraud on their part can be proven.
+
+
+\subsection{Transparency}
+
+We call the representation of an asset transparent if it is possible for a
+third-party to determine who the owner(s) of it are regardless of interference
+from the issuer or owner(s). Of course in most cases ownership will be defined
+in terms of cryptographic keypairs rather than "meatspace" names, but we talk
+about transparency for the purposes of detecting and proving fraud, as well as
+more mundane activities like payment of dividends, rather than considerations
+of real-world ownership.
+
+A opaque representation does not have this property, however it should have the
+property of being provable, allowing the owner of an asset to prove they are
+the true owner to a third-party without the assistance of the
+issuer.\footnote{If the issuer's assistance is required then why not simply
+trust their records, given that the issuer can simply refuse to assist the
+owner?}
+
+
+\subsection{Divisibility}
+
+Many financial assets are divisible, and units of them can be split into parts,
+or parts can be merged again. Representing this poses issues, for example if a
+fixed ratio of bitcoins to shares is used, a change in the value of either the
+shares or the bitcoins representing the shares can cause economic distortions
+if the shares are less valuable than the bitcoins. In addition the Bitcoin
+system has limits on the minimum transaction output size, known as the "dust
+limit". The limit is (currently) based on an assumption that there is no
+rational reason to create an output that would cost more to spend in fees that
+it's worth, unless you are trying to "abuse" the blockchain by inserting data
+into it.\footnote{The addition of the dust limit was triggered in part due to
+someone encoding 2.5MiB of Wikileaks data, and materials related to child
+abuse, in the UTXO set.}
+
+
+\subsection{Proof size}
+
+Representations differ in the size of the proofs required to prove their
+existence; this issue is present regardless of whether the representation is
+transparent or opaque. In most cases each transfer of an asset increases the
+proof size by $k$, and merging $j$ units of the asset together results in an a
+proof of size $j*k*n$ - like Bitcoin itself this can pose scalability problems.
+On the other hand, unlike in the case of Bitcoin, for an asset with an issuer
+the issuer can always destroy and re-issue units of the asset to reset the
+proof size back to the minimum.
+
+A related issue is whether or not the representation can be verified by
+SPV\footnote{Simplified payment verification} clients, and in a transparent
+system, whether or not SPV clients can examine all outstanding units of the
+asset.
+
+
+\subsection{Censorship resistance}
+
+A representation is censorship resistant if it is difficult for Bitcoin miners
+to determine if a transaction they are mining represents an asset. Of course a
+completely censorship proof representation is usually impossible - given the
+knowledge that $TXOut_i$ represents an asset a majority of hashing power can
+always refuse to mine transactions spending that output - but censorship can be
+made to be fairly difficult. In particular censorship of the representation
+itself ideally should not be possible.
+
+
+\subsection{Multi-author/multi-use transactions (e.g. CoinJoin)}
+
+While often the case transactions do not have to have a single author, nor do
+they have to have a single purpose. In particular zero-trust asset purchases
+for assets represented on the blockchain can be accomplished by having both
+parties jointly author a transaction where both the asset, and the funds,
+change hands atomicly to their new owners.
+
+In addition representations ideally should be flexible enough that additional
+transaction inputs and outputs can be added to the transaction without
+interferring with the intended asset transfer. For instance the user may want
+to exchange one or more assets for other assets owned by another user
+atomically, possibly using different representation systems. Or they may want
+to obscure exactly who was paying for what assets by combining the transfer
+with the CoinJoin technique of multi-author transactions.
+
+\subsection{Legal}
+
+
+
+\section{Asset representation systems}
+
+\subsection{Centrally maintained ledgers}
+
+Here we have the issuer of the asset - or possibly some other third party -
+also maintain the ownership ledger. Transfers of the asset can be made atomic
+with respect to Bitcoin transactions by having the ledger define a transaction
+as valid only if a specific set of transaction outputs exists in the Bitcoin
+blockchain. For an asset where the ledger is maintained by the issuer in
+principle this is secure: the issuer is already trusted with the asset so
+trusting them to maintain the ledger itself adds no additional risks.
+
+A central ledger implementation should incorporate triple-entry-accounting
+\cite{triple-entry-accounting} to allow fraud by the issuer in their
+maintenance of the ledger to be proven. Consider for example a transaction
+where Alice sells Bob $1$ unit of FooCorp stock for $1$ Bitcoin: Alice first
+creates a never-before-used Bitcoin address $\mathrm{Addr}_A$ to receive Bob's
+funds. Next she creates a transaction stating that if a transaction output
+paying $1$ Bitcoin to $\mathrm{Addr}_A$ exists in the Bitcoin blockchain prior
+to time $T$ she wishes $1$ unit of FooCorp stock be deducted from her balance
+and added to Bob's balance. She signs this transaction and presents it to Ivan,
+the maintainer of the FooCorp ledger. Ivan checks Alice's current account
+balance, and if she owns the required units of stock Ivan signs the transaction
+and gives his signature to Alice. Now she can present it to Bob, and if he is
+satisfied that the expiry time\footnote{An expiry time is required in case Bob
+fails to complete the transaction; Ivan must deduct all pending transfers from
+Alice's balance.} is sufficiently far in the future, he can make the transfer.
+
+Proving fraud varies depending on what exact type of fraud is to be proved, and
+mostly follows the same logic as fraud proofs for the Bitcoin
+blockchain,\cite{inflation-proofing-via-fraud-notices} as well as off-chain
+transaction systems. In particular either all transactions will need to be
+public, or the issuer will need to create public commitments to
+merkle-sum-trees\cite{merkle-sum-tree} of all balances, so that the total
+assets issued can be audited. (much in the same way an off-chain transaction
+system would make it possible to audit the funds held in trust by the service)
+
+The chief disadvantage of central ledger systems is that of specialization:
+often it is the case that an issuer of some asset might not want to deal with
+the overhead, complexity, and high consequences for maintaining the ledger they
+are responsible for. In particular the issuer is involved in every buy or sell
+of the asset and hence must have a online service to do so; note how in
+traditional financial markets it is very common to outsource the task of ledger
+maintenance to third-party exchanges, something we wish to avoid in the name of
+decentralization.
+
+Central ledger systems do make the most efficient use of blockchain space,
+however assets tend to be high-value transactions, so transaction fees are not
+likely to be significant for the application.
+
+
+\subsection{Consensus blockchains}
+
+Like Bitcoin itself we can of course represent assets with a consensus
+blockchain, either independently mined, or merge-mined. In addition the
+blockchain may take the form of the Bitcoin chain - a linear series of blocks -
+or something else entirely like a directed acyclic graph. Regardless of the
+exact form the blockchain takes the key issue is how the consensus is achieved;
+in the case of a Bitcoin-like proof-of-work chain the state of the chain is
+determined by work done. However this leaves the chain vulnerable to attack by
+anyone who can do the majority of work, (the 51\% attack) either the sum work
+done from the beginning of the system, or simply on an ongoing
+basis.\footnote{Note how this means that for the chain to be secure work must
+be done continuously.} We now have an incentives problem: why should a given
+miner do the work required to mine the blockchain? Namecoin attempted to solve
+this problem by conflating the function of Namecoin the distributed consensus
+key-value system with Namecoin the currency, resulting in significant
+speculation activities. It is not clear what effect this conflation has had on
+Namecoin's success; Namecoin has not yet been used in production for its
+intended purpose but there are many possible reasons for this failure.
+
+In addition Namecoin allowed merge-mining early in its history. Merge-mining
+allows the work done to mine one chain, the master chain, to be re-used for
+multiple consensus systems by defining a valid block header as being either a
+proof-of-work directly, or a merkle-path leading to a proof-of-work potentially
+valid for a different chain. The theory behind allowing merge-mining is that by
+making mining essentially cost-free you can encourage those mining the master
+chain to merge-mine the secondary chain as well, thus increasing the hashing
+power of the secondary chains and thus their resistance to a 51\% attack. If
+$P$ is the total hashing power in existance, and $>P/2$ of that hashing power
+decides to merge-mine the secondary chain, we can guarantee the security of
+that secondary chain the hashing power available to the attacker is
+insufficient to launch a 51\% attack.
+
+On the other hand this also perversely means that the \emph{cost} of a 51\%
+attack can be negligable. Specifically for any miner already mining the primary
+chain, the marginal cost to mine the secondary is nearly zero.  Thus if less
+than 50\% of the total hashing power is merge-mining the secondary it may be
+possible for an attacker to rent hashing power at low cost. Equally the
+attacker may find it profitable to buy their own hashing power, and use it to
+both attack the secondary chain, and gain the reward from mining the
+primary.\footnote{Note that while merge-mining protocols have all been designed
+such that it is always possible to tell \emph{if} hashing power is engaging in
+merge-mining they do not force the miner to reveal \emph{which} chains they are
+mining, thus allowing a miner to conduct a re-organization attack in secret.}
+
+In the case of Namecoin its hashing power, as a \% of the total Bitcoin hashing
+power, has generally remained around FIXME\%, thus allowing large pools to
+single-handedly attack Namecoin if they had chosen too. It's easy to imagine a
+merge-mined blockchain for the purposes of, say, stock ownership records being
+attacked by a government or large corporate entity wishing to destroy the chain
+for legal or competitive reasons, and equally it's easy to imagine large
+well-known mining pools not wishing to associate themselves with that
+merge-mined chain for legal reasons. (other than a government-sponsored attack)
+
+
+\subsubsection{Atomic transfers in consensus blockchains}
+
+FIXME: \url{https://en.bitcoin.it/wiki/Contracts#Example_5:_Trading_across_chains}
+
+
+\subsection{Parasitic consensus systems}
+
+A proof-of-work blockchain, such as the Bitcoin blockchain, can be made use of
+parasistically for a secondary consensus system. Recall the two fundemental
+proofs that a blockchain provides: consensus ordering/timestamping and and
+proof-of-publication. A Satoshi-style blockchain can be used as an ordered
+message publication service - it is not possible to completely prevent the
+publication of data without whitelisting censorship\footnote{By this we mean
+    that a majority of miners use whitelists to determine if a transaction is
+allowed to be mined.} although publication can be made expensive.\footnote{By
+"expensive" we mean the fees required to get the transction mined; see FIXME
+for a discussion of data embedding techniques.} Thus for a given block height
+$i$ we have a set of blocks $B={b_0 ... b_i}$ containing messages $M={m_0 ...
+m_j}$. By applying a fixed set of rules to that set of messages multiple
+parties can independently arrive at the same state of the system.
+
+A concrete toy example is the is the "String Bling" system. Here we want to
+determine what string $s$ is defined as being the most "blinged", where bling
+is gained by provably destroying Bitcoins. In addition we want to make it
+possible for a given string $s_1$ to have its bling stolen and transferred to
+another string, $s_2$, by a hostile act.
+
+FIXME: rewrite without OP\_RETURN, making bling be abstract
+
+To do this we make use of provably unspendable
+outputs\cite{provably_unspendable}: a scriptPubKey whose first operation is
+OP\_RETURN can never evaluate true, and thus is trivially proven to be
+unspendable. We say that if a transaction with an output containing a
+scriptPubKey of the following form exists in the Bitcoin blockchain $v$ BTC
+worth of bling have been assigned to string $s$:
+
+OP\_RETURN "BLING" s
+
+We also say that the bling associated with $s_1$ can be transferred to $s_2$ if
+a transaction of the following form exists in the Blockchain, provided that the
+total bling associated with $s_1$ at the transaction's height is less than $v$:
+
+OP\_RETURN "STEAL" s\_1 s\_2
+
+The algorithm to evaluate the amount of bling associated with all blinged strings is simple:
+
+\begin{verbatim}
+S = map()
+
+for block in blocks:
+    for tx in block:
+        if tx is of form "bling":
+            S[s] += tx.value
+
+        else if tx is of form "steal":
+            if S[s_1] <= tx.value:
+                S[s_2] += S[s_1]
+                S[s_1] = 0
+\end{verbatim}
+
+Note how there may be transactions in the blockchain that are invalid according
+to the rules of the bling system - a transaction ma have fields missing or an
+attempt to steal bling may have less value than the bling stolen. The presence
+of such transactions is of no concern however as it is the rules, not the
+blockchain data to which the rules are applied, that determines of the final
+state of the system.
+
+The Mastercoin system uses this principle. While not yet well developed, there
+exists an agreed upon set of rules that, from the contents of the Bitcoin
+blockchain, can derive a set of "Mastercoin" transactions and a final ledger
+state derived from data encoded in the Bitcoin blockchain.
+
+Parasitic consensus systems inherently gain the benefits of the security of the
+underlying consensus system. Though the "string bling" system may have only a
+handful of users interested in it, an attacker attempting to change the state
+of the consensus of what strings have what bling would need to attack the
+Bitcoin blockchain directly - a signififantly harder problem. A merge-mined or
+independently mined string-bling implementation would probably never be secure
+against an attacker with a budget of even just a few thousands dollars; by
+parasiticly using the Bitcoin blockchain the attacker\'s required budget swells
+to hundreds of millions of dollars.
+
+
+\subsubsection{Atomic transfers in parasitic consensus systems}
+
+FIXME - basically a non-issue
+
+
+
+\subsection{Colored Coins}
+
+For the purposes of asset tracking we can take advantage of the symmetry
+between the movement of Bitcoins, and the movement of assets. In both cases we
+want to assign assets to owners, and allow those owners to transfer their
+assets to new owners.
+
+
+\subsubsection{Discrete txout scheme}
+
+The most primitive implementation of this idea is to define a specific txout as
+representing some particular asset or discrete unit of that asset. For instance
+in figure \ref{fig:peter-bond} Peter Todd issued the asset by fiat by signing
+a message with his PGP key.\footnote{Peter Todd will honor this agreement.}
+
+\begin{figure}
+\label{fig:peter-bond}
+{\small
+\begin{verbatim}
+-----BEGIN PGP SIGNED MESSAGE-----
+
+I, Peter Todd, hereby declare that the following txout and its discrete txout
+scheme children is entitled to yearly coupon payments of 0.1BTC for the period
+2014 to 2019. Payment shall be made on demand upon the receipt of a message
+signed with the scriptPubKey of the txout for the appropriate time period
+(pro-rated) stating the address to which the coupon payment shall be sent. Time
+shall be defined in terms of Bitcoin block timestamps.
+
+0e3e2357e806b6cdb1f70b54c3a3a17b6714ee1f0e68bebb44a74b1efd512098:0
+
+-----BEGIN PGP SIGNATURE-----
+
+-----END PGP SIGNATURE-----
+\end{verbatim}
+}
+\caption{The PGP-signed statement issuing the asset}
+\end{figure}
+
+Figure \ref{fig:peter-bond-transfer} shows the asset being transferred, first
+from Satoshi to Alice, in $\mathrm{Tx}_1$, and then from Alice to Bob in
+$\mathrm{Tx}_2$. The rule here is very simple: whatever is the first
+transaction output is defined as being the asset; the value of the transaction
+output is irrelevant, and hence is not shown in the diagram.
+
+Something to keep in mind is that $\mathrm{Tx}_0$'s role is simply to create
+the transaction output for the PGP-signed statement to reference;
+$\mathrm{Tx}_0$ is \emph{not} what creates the \emph{asset}. Only the
+statement, and Peter's ``meatspace'' reputation and honesty, can do that.
+
+
+
+
+Suppose we have a contract $C$ in some agreed upon form. (which may or may not
+be machine readable) We can efficiently create a transaction output that in
+some way commits to the content of that contract by computing the digest $H(C)$
+and embedding that digest into the output's
+scriptPubKey:
+
+\begin{verbatim}
+    <H(C)> DROP <pubkey> CHECKSIG
+\end{verbatim}
+
+Once the txout has been created in a transaction it is not possible to change
+the contents of $C$. It is also possible to avoid the
+requirement of including the hash in the scriptPubKey separately by using the
+homomorphic property of ElGamel-type cryptosystems, thus creating a pubkey that
+itself commits to $H(C)$\cite{DBLP:journals/corr/abs-1212-3257}
+
+us proposed\cite{mike-hearn-distributed-markets} by Hearn distributed markets
+could be created using external P2P networks to distribute the contents of the
+contracts, in conjunction with a special-purpose client. Assets would be
+represented by one or more designated transaction outputs, and transactions
+would be used to move the asset ownership from one party to another by spending
+those transaction outputs.
+
+A small generalization can be made to allow the representation of divisible
+assets by using the least significant bits of the txout value fields to match
+up transaction inputs previously representing an asset to the outputs that now
+represent it.\cite{peter-todd-fidelity-bonds}
+
+
+\subsection{Colored Coins}
+
+Here the issuer of the asset designates one or more transaction outputs as
+representing some amount of the asset. At the most simple, any transaction
+output in a transaction that spends those outputs is then defined as also
+representing the asset; practical systems need ways to allow some transaction
+inputs and outputs in the transaction be left "uncolored" to pay fees and
+atomicly conduct sales.
+
+
+
+
+A brief overview: in the Bitcoin system a transaction $T$ consists of an
+ordered set of one or more transaction inputs, $I=\{I_0 ... I_n\}$ and a list
+of one or more transaction outputs, $O=\{O_0 ... O_n\}$. Transactions are
+referred to by their hash, also known as the $\mathrm{txid}$, calculated as
+$H(T)$ where $H$ is the SHA256 hash function applied twice. Each input $I_i =
+(H(T_j), k, S)$ is a tuple of a previous transaction hash, an index, and a
+scriptSig $S$. Each output is a tuple $O_i = (P, v)$ consisting of a
+scriptPubKey and value. The scriptPubKey is a short computer program, and the
+scriptSig is the data that causes that program to return true. While the
+details are not relevant here, most standard transactions use scriptPubKeys
+that essentially check a signature computed over the hash of part of the
+\emph{spending} transaction.
+
+
+
+\subsubsection{Committed contracts}
+
+
+
+\subsubsection{Metadata}
+
+
+\subsection{Blockchains}
+
+
+\bibliographystyle{plain}
+\bibliography{paper}
+
+\end{document}
