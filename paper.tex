@@ -440,16 +440,88 @@ that essentially check a signature computed over the hash of part of the
 \emph{spending} transaction.
 
 
+\subsubsection{Value accounting}
+
+Talk about how to make assets divisible without fixing the satoshis/asset
+ratios. Note fully fractional scheme, and powers of two scheme. (write some
+quick code for powers of two?)
+
+
+
+\subsubsection{Mapping schemes}
+
+like "best fit" where colors are somehow fitted together, not sure I really
+understand that 100\%, complex! can we take a scheme actually proposed and find
+a flaw? good instructional case
+
+
+\subsubsection{txout mapping with nSequence}
+
+use nSquence on txins to send colored coins to txouts
+
+note how this is compatible with other schemes in that the CTxIn is determinging where coins go
+
+
+\subsubsection{CTxOut nValue schemes}
+
+use low-order bits to specify colors
+
+not as compatible with other schemes because of nValue conflicts, though they
+can be detected and avoided case-by-case (e.g. coinjoin)
+
+
 
 \subsubsection{Committed contracts}
 
+In a txout, commit to the contract specifying where colored coins came and went.
+
+Tricky to get right, must be sure that every txout is not hiding a contract.
+Can be used with P2SH.
 
 
-\subsubsection{Metadata}
+\subsubsection{Encrypted transfers}
+
+use data hiding techniques to hide where colored coins were actually being sent
+(re: contracts, re: nSequence?) though nSequence is still set - std txs don't
+do that. Still, nice in conjunction with coinjoin to make blacklists unweildly.
+
 
 
 \subsection{Blockchains}
 
+talk more about merge-mining
+
+non-pow-merge mining such as timestamped chains and proof-of-sacrifice chains
+
+use zookeyv system as an example re: incentives to reveal data. Remember that
+the incentive to reveal your blockchain data is because you want other people
+to build on it - problematic in non-linear DAG schemes.
+
+move blockchains section to beginning, and make this a true survey of all
+decentralized consensus systems? talk about incentives, for instance lack of in
+apps like timestamping
+
+\subsubsection{proof-of-work}
+
+hashcash, sha256, scrypt, talk about ASIC resistance
+
+momentum proof-of-work scheme, and why it's not asic resistant.
+
+is there a proof that a memhard scheme can't be asymmetricly verifiable? note
+gmaxwell's interactive memhard tree scheme
+
+
+\subsection{verification/consensus schemes vs. fraud proofing vs. punishment after the fact}
+
+IE consensus vs. fidelity bonded bank model vs. trusted ledgers
+
+SCIP should get some mention too
+
+
+\appendix{Censorship resistant data-hiding}
+
+https://bitcointalk.org/index.php?topic=265488.msg3377058#msg3377058 <- turning data into valid pubkeys
+https://bitcointalk.org/index.php?topic=308483.0;all <- general encryption
 
 \bibliographystyle{plain}
 \bibliography{paper}
